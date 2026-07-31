@@ -35,11 +35,12 @@
             background-size: 40px 40px; z-index: -1; pointer-events: none;
         }
 
-        header { padding: 5rem 1rem 3rem 1rem; text-align: center; }
+        header { padding: 5rem 1rem 3rem 1rem; text-align: center; position: relative; }
         header h1 {
             font-size: 3.5rem; font-weight: 800; margin: 0;
             background: linear-gradient(135deg, #ffffff 30%, #a5c5ff 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-shadow: 0 10px 30px rgba(56, 126, 255, 0.15); letter-spacing: -1px;
         }
 
         main { max-width: 1000px; margin: 0 auto 5rem auto; padding: 0 1.5rem; }
@@ -47,6 +48,7 @@
             background: var(--glass-bg); backdrop-filter: blur(16px);
             border: 1px solid var(--glass-border); border-radius: 16px;
             padding: 2.5rem; margin-bottom: 2.5rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
         }
 
         h2 { font-size: 1.75rem; color: #ffffff; display: flex; align-items: center; }
@@ -59,7 +61,7 @@
         .table-container { overflow-x: auto; margin-top: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); }
         table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(0, 0, 0, 0.2); }
         th, td { padding: 1.2rem 1.5rem; text-align: left; }
-        th { background: rgba(56, 126, 255, 0.06); color: #ffffff; text-transform: uppercase; border-bottom: 1px solid rgba(56, 126, 255, 0.2); }
+        th { background: rgba(56, 126, 255, 0.06); color: #ffffff; border-bottom: 1px solid rgba(56, 126, 255, 0.2); }
         td { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
 
         .btn-download {
@@ -106,8 +108,8 @@
                             <th>Aktion</th>
                         </tr>
                     </thead>
-                    <tbody id="download-table">
-                        <tr><td colspan="4" style="text-align:center; color:#64748b; padding: 2rem;">Lade Builds...</td></tr>
+                    <tbody id="build-table">
+                        <tr><td colspan="4" style="text-align:center; color:#64748b; padding: 2rem;">Suche nach verfügbaren Builds...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -120,7 +122,7 @@
                     <input type="text" name="Name" required placeholder="Dein Name">
                 </div>
                 <div class="form-group">
-                    <textarea name="Nachricht" required placeholder="Beschreibe kurz dein Anliegen..."></textarea>
+                    <textarea name="Nachricht" required placeholder="Nachricht..."></textarea>
                 </div>
                 <button type="submit">E-Mail senden</button>
             </form>
@@ -132,48 +134,39 @@
     </footer>
 
     <script>
-        async function loadDownloads() {
-            const tableBody = document.getElementById('download-table');
+        async function fetchBuilds() {
+            const tbody = document.getElementById('build-table');
             try {
+                // Wir laden eine JSON-Datei, die von der GitHub Action generiert wird
                 const response = await fetch('files.json');
-                if (!response.ok) throw new Error('Keine Dateiliste gefunden');
+                if (!response.ok) throw new Error();
                 
-                let dateien = await response.json();
-                
-                if (dateien.length === 0) {
-                    tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds verfügbar.</td></tr>";
-                    return;
-                }
+                const files = await response.json();
+                if (files.length === 0) throw new Error();
 
-                // Sortieren (neueste oben)
-                dateien.sort().reverse();
-                
+                files.sort().reverse();
                 let html = "";
-                dateien.forEach((datei, index) => {
-                    const treffer = datei.match(/-([vV]\d+\.\d+\.\d+)/);
-                    let version = treffer ? treffer[1] : datei;
-                    
-                    // HTML Escaping
-                    const escapedVersion = version.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
-                    const displayVersion = escapedVersion.replace(/^[vV]+/, '');
-                    const latestLabel = index === 0 ? "<span class='badge-latest'>Latest</span>" : "";
+                
+                files.forEach((file, index) => {
+                    const match = file.match(/-([vV]\d+\.\d+\.\d+)/);
+                    const version = match ? match[1] : file;
+                    const displayVersion = version.replace(/^[vV]+/, '');
+                    const latest = index === 0 ? '<span class="badge-latest">Latest</span>' : '';
 
                     html += `
                         <tr>
-                            <td><strong style='color:#fff;'>v${displayVersion}</strong>${latestLabel}</td>
-                            <td style='color:#cbd5e1;'>Linux (amd64)</td>
-                            <td style='color:#64748b;'>.tar.gz (enthält Installer)</td>
-                            <td><a href='${encodeURIComponent(datei)}' class='btn-download'>Download</a></td>
+                            <td><strong style="color:#fff;">v${displayVersion}</strong>${latest}</td>
+                            <td style="color:#cbd5e1;">Linux (amd64)</td>
+                            <td style="color:#64748b;">.tar.gz (enthält Installer)</td>
+                            <td><a href="${encodeURIComponent(file)}" class="btn-download">Download</a></td>
                         </tr>`;
                 });
-                tableBody.innerHTML = html;
-
-            } catch (err) {
-                tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#ef4444; padding: 2rem;'>Fehler beim Laden der Builds.</td></tr>";
+                tbody.innerHTML = html;
+            } catch (e) {
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds im Verzeichnis verfügbar.</td></tr>";
             }
         }
-
-        loadDownloads();
+        fetchBuilds();
     </script>
 </body>
 </html>
