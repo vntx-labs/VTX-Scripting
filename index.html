@@ -1,66 +1,4 @@
-import express from 'express';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Helper to simulate PHP's __DIR__ in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Serve static files (like vtx-logo.png or the .tar.gz files)
-app.use(express.static(__dirname));
-
-app.get('/', (req, res) => {
-    // PHP: $dateien = glob("*.tar.gz");
-    let dateien = [];
-    try {
-        dateien = fs.readdirSync(__dirname).filter(file => file.endsWith('.tar.gz'));
-    } catch (err) {
-        dateien = [];
-    }
-
-    let tableRows = "";
-
-    if (dateien.length > 0) {
-        // PHP: rsort($dateien);
-        dateien.sort().reverse();
-        
-        let isLatest = true;
-
-        dateien.forEach(datei => {
-            // PHP: preg_match('/-([vV]\d+\.\d+\.\d+)/', $datei, $treffer);
-            const treffer = datei.match(/-([vV]\d+\.\d+\.\d+)/);
-            
-            // PHP: $version = isset($treffer) ? $treffer[1] : htmlspecialchars($datei);
-            let version = treffer ? treffer[1] : datei;
-
-            // Escape HTML for safety (equivalent to htmlspecialchars)
-            const escapedVersion = String(version).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            const escapedDatei = String(datei).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-            const urlEncodedDatei = encodeURIComponent(datei);
-
-            const latestLabel = isLatest ? "<span class='badge-latest'>Latest</span>" : "";
-            isLatest = false;
-
-            // PHP: ltrim(..., 'vV') equivalent
-            const displayVersion = escapedVersion.replace(/^[vV]+/, '');
-
-            tableRows += `
-                        <tr>
-                            <td><strong style='color:#fff;'>v${displayVersion}</strong>${latestLabel}</td>
-                            <td style='color:#cbd5e1;'>Linux (amd64)</td>
-                            <td style='color:#64748b;'>.tar.gz (enthält Installer)</td>
-                            <td><a href='${urlEncodedDatei}' class='btn-download'>Download</a></td>
-                        </tr>`;
-        });
-    } else {
-        tableRows = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds im Serververzeichnis verfügbar.</td></tr>";
-    }
-
-    const html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -79,10 +17,7 @@ app.get('/', (req, res) => {
             --glass-border: rgba(255, 255, 255, 0.08);
         }
 
-        * {
-            box-sizing: border-box;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
+        * { box-sizing: border-box; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
 
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -94,236 +29,56 @@ app.get('/', (req, res) => {
         }
 
         body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-image: linear-gradient(rgba(56, 126, 255, 0.03) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(56, 126, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            z-index: -1;
-            pointer-events: none;
+            background-size: 40px 40px; z-index: -1; pointer-events: none;
         }
 
-        header {
-            padding: 5rem 1rem 3rem 1rem;
-            text-align: center;
-            position: relative;
-        }
-
+        header { padding: 5rem 1rem 3rem 1rem; text-align: center; }
         header h1 {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin: 0;
+            font-size: 3.5rem; font-weight: 800; margin: 0;
             background: linear-gradient(135deg, #ffffff 30%, #a5c5ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 10px 30px rgba(56, 126, 255, 0.15);
-            letter-spacing: -1px;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        header p {
-            color: var(--text-muted);
-            font-size: 1.2rem;
-            margin-top: 1rem;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        main {
-            max-width: 1000px;
-            margin: 0 auto 5rem auto;
-            padding: 0 1.5rem;
-        }
-
+        main { max-width: 1000px; margin: 0 auto 5rem auto; padding: 0 1.5rem; }
         .section {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px;
-            padding: 2.5rem;
-            margin-bottom: 2.5rem;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 
-                        inset 0 1px 1px rgba(255, 255, 255, 0.1);
-            position: relative;
+            background: var(--glass-bg); backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 2.5rem; margin-bottom: 2.5rem;
         }
 
-        .section:hover {
-            transform: translateY(-5px) scale(1.005);
-            border-color: rgba(56, 126, 255, 0.3);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 
-                        0 0 30px rgba(56, 126, 255, 0.1),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.2);
-        }
-
-        h2 {
-            font-size: 1.75rem;
-            color: #ffffff;
-            margin-top: 0;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-        }
-
+        h2 { font-size: 1.75rem; color: #ffffff; display: flex; align-items: center; }
         h2::before {
-            content: "";
-            display: inline-block;
-            width: 6px;
-            height: 24px;
-            background: var(--neon-blue);
-            margin-right: 0.75rem;
-            border-radius: 4px;
+            content: ""; display: inline-block; width: 6px; height: 24px;
+            background: var(--neon-blue); margin-right: 0.75rem; border-radius: 4px;
             box-shadow: var(--neon-glow);
         }
 
-        p {
-            color: var(--text-muted);
-            font-size: 1.05rem;
-            line-height: 1.7;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            margin-top: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            background: rgba(0, 0, 0, 0.2);
-        }
-
-        th, td {
-            padding: 1.2rem 1.5rem;
-            text-align: left;
-        }
-
-        th {
-            background: rgba(56, 126, 255, 0.06);
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid rgba(56, 126, 255, 0.2);
-        }
-
-        td {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 1.05rem;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
-            color: #ffffff;
-        }
+        .table-container { overflow-x: auto; margin-top: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; background: rgba(0, 0, 0, 0.2); }
+        th, td { padding: 1.2rem 1.5rem; text-align: left; }
+        th { background: rgba(56, 126, 255, 0.06); color: #ffffff; text-transform: uppercase; border-bottom: 1px solid rgba(56, 126, 255, 0.2); }
+        td { border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
 
         .btn-download {
             background: linear-gradient(135deg, var(--neon-blue) 0%, #1d4ed8 100%);
-            color: #ffffff;
-            text-decoration: none;
-            padding: 0.6rem 1.4rem;
-            border-radius: 8px;
-            font-weight: 700;
-            display: inline-block;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(56, 126, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-
-        .btn-download:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--neon-glow);
-            filter: brightness(1.1);
-        }
-
-        .btn-download:active {
-            transform: translateY(1px);
+            color: #ffffff; text-decoration: none; padding: 0.6rem 1.4rem;
+            border-radius: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.85rem;
         }
 
         .badge-latest {
-            background: rgba(56, 126, 255, 0.15);
-            color: #60a5fa;
-            padding: 0.25rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            border: 1px solid rgba(56, 126, 255, 0.3);
-            box-shadow: inset 0 0 8px rgba(56, 126, 255, 0.2);
-            margin-left: 0.5rem;
-            text-transform: uppercase;
+            background: rgba(56, 126, 255, 0.15); color: #60a5fa;
+            padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem;
+            border: 1px solid rgba(56, 126, 255, 0.3); margin-left: 0.5rem;
         }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
+        .form-group { margin-bottom: 1.5rem; }
+        input, textarea { width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); color: #fff; border-radius: 8px; }
+        button[type="submit"] { background: transparent; color: #ffffff; border: 1px solid var(--neon-blue); padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; }
 
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #94a3b8;
-            font-size: 0.95rem;
-        }
-
-        input, textarea {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 8px;
-            color: #ffffff;
-            font-size: 1rem;
-        }
-
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: var(--neon-blue);
-            box-shadow: 0 0 15px rgba(56, 126, 255, 0.25);
-            background: rgba(0, 0, 0, 0.4);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 120px;
-        }
-
-        button[type="submit"] {
-            background: transparent;
-            color: #ffffff;
-            border: 1px solid var(--neon-blue);
-            padding: 0.8rem 2rem;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: inset 0 0 0 rgba(56, 126, 255, 0);
-        }
-
-        button[type="submit"]:hover {
-            background: rgba(56, 126, 255, 0.1);
-            box-shadow: var(--neon-glow);
-            border-color: #60a5fa;
-        }
-
-        footer {
-            text-align: center;
-            padding: 4rem 1rem;
-            color: #475569;
-            font-size: 0.9rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.03);
-            background: rgba(3, 7, 18, 0.4);
-        }
+        footer { text-align: center; padding: 4rem 1rem; color: #475569; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -334,17 +89,13 @@ app.get('/', (req, res) => {
     </header>
 
     <main>
-        <!-- Beschreibung -->
         <div class="section">
             <h2>Über VTX</h2>
-            <p>VTX ist eine eigenständige Skriptsprache, die für maximale Kontrolle und Unabhängigkeit entwickelt wurde. Sie bringt eine eigene, optimierte Terminal-Benutzeroberfläche (UI) mit und lässt sich dank des intelligenten Userspace-Installers perfekt in moderne Linux-Desktops (GNOME, Nemo, Nautilus) integrieren – inklusive systemweiter Dateisymbole und Startmenü-Verknüpfungen.</p>
+            <p>VTX ist eine eigenständige Skriptsprache, die für maximale Kontrolle und Unabhängigkeit entwickelt wurde.</p>
         </div>
 
-        <!-- Downloads-Tabelle -->
         <div class="section">
             <h2>Downloads</h2>
-            <p>Hier findest du die offiziellen Versionen als portable Archive. Es ist kein Login erforderlich.</p>
-            
             <div class="table-container">
                 <table>
                     <thead>
@@ -355,32 +106,21 @@ app.get('/', (req, res) => {
                             <th>Aktion</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${tableRows}
+                    <tbody id="download-table">
+                        <tr><td colspan="4" style="text-align:center; color:#64748b; padding: 2rem;">Lade Builds...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Lizenzhinweis -->
-        <div class="section">
-            <h2>Lizenz &amp; Schutzrechte</h2>
-            <p>VTX steht unter einer strengen <strong>Source-Available-Lizenz</strong>. Die private Nutzung sowie die Integration in unabhängige Linux-Distributionen (z. B. Arch Linux AUR, Debian/Fedora Repositories) ist ausdrücklich erlaubt und erwünscht. Jegliche kommerzielle Verwertung oder Nutzung im geschäftlichen Umfeld durch Unternehmen ist ohne schriftliche Genehmigung untersagt.</p>
-        </div>
-
-        <!-- Kontakt / Fehlermeldung -->
         <div class="section">
             <h2>Problem melden / Kontakt</h2>
-            <p>Falls bei der Installation etwas schiefgelaufen ist oder du einen Fehler in der Sprache gefunden hast, kannst du mir hier direkt eine Nachricht schicken:</p>
-            
             <form action="mailto:info.orbit.link@gmail.com" method="post" enctype="text/plain">
                 <div class="form-group">
-                    <label for="name">Dein Name / Pseudonym:</label>
-                    <input type="text" id="name" name="Name" required placeholder="z.B. AnonymousCoder">
+                    <input type="text" name="Name" required placeholder="Dein Name">
                 </div>
                 <div class="form-group">
-                    <label for="message">Fehlerbeschreibung / Nachricht:</label>
-                    <textarea id="message" name="Nachricht" required placeholder="Beschreibe kurz dein Anliegen..."></textarea>
+                    <textarea name="Nachricht" required placeholder="Beschreibe kurz dein Anliegen..."></textarea>
                 </div>
                 <button type="submit">E-Mail senden</button>
             </form>
@@ -388,14 +128,52 @@ app.get('/', (req, res) => {
     </main>
 
     <footer>
-        <p>&copy; 2026 Vantix. Alle Rechte vorbehalten. | Designed for Next-Gen Terminal Core Platforms</p>
+        <p>&copy; 2026 Vantix. Alle Rechte vorbehalten.</p>
     </footer>
 
-</body>
-</html>`;
-    res.send(html);
-});
+    <script>
+        async function loadDownloads() {
+            const tableBody = document.getElementById('download-table');
+            try {
+                const response = await fetch('files.json');
+                if (!response.ok) throw new Error('Keine Dateiliste gefunden');
+                
+                let dateien = await response.json();
+                
+                if (dateien.length === 0) {
+                    tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds verfügbar.</td></tr>";
+                    return;
+                }
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+                // Sortieren (neueste oben)
+                dateien.sort().reverse();
+                
+                let html = "";
+                dateien.forEach((datei, index) => {
+                    const treffer = datei.match(/-([vV]\d+\.\d+\.\d+)/);
+                    let version = treffer ? treffer[1] : datei;
+                    
+                    // HTML Escaping
+                    const escapedVersion = version.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
+                    const displayVersion = escapedVersion.replace(/^[vV]+/, '');
+                    const latestLabel = index === 0 ? "<span class='badge-latest'>Latest</span>" : "";
+
+                    html += `
+                        <tr>
+                            <td><strong style='color:#fff;'>v${displayVersion}</strong>${latestLabel}</td>
+                            <td style='color:#cbd5e1;'>Linux (amd64)</td>
+                            <td style='color:#64748b;'>.tar.gz (enthält Installer)</td>
+                            <td><a href='${encodeURIComponent(datei)}' class='btn-download'>Download</a></td>
+                        </tr>`;
+                });
+                tableBody.innerHTML = html;
+
+            } catch (err) {
+                tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#ef4444; padding: 2rem;'>Fehler beim Laden der Builds.</td></tr>";
+            }
+        }
+
+        loadDownloads();
+    </script>
+</body>
+</html>
