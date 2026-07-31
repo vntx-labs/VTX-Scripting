@@ -2,37 +2,39 @@ name: Update von FileZilla empfangen
 
 on:
   repository_dispatch:
-    types: [filezilla_update] # Signalname aus deinem PHP-Skript
-  workflow_dispatch: # Ermöglicht dir, den Workflow testweise per Hand zu starten
+    types: [filezilla_update]
+  workflow_dispatch: # Erlaubt manuelles Testen auf GitHub
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   refresh-pages:
     runs-on: ubuntu-latest
     steps:
-      # 1. Repository auschecken
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Die neue .tar.gz Datei von InfinityFree holen
       - name: Lade neue Version von InfinityFree
         run: |
-          echo "Lade Datei herunter: ${{ github.event.client_payload.dateiname }}"
-          curl -sL "http://infinityfreeapp.com{{ github.event.client_payload.dateiname }}" -o "${{ github.event.client_payload.dateiname }}"
+          # Extrahiere den Dateinamen aus dem API-Signal
+          DATEINAME="${{ github.event.client_payload.dateiname }}"
+          
+          # Sicherheitsnetz: Falls DATEINAME leer ist, brich nicht ab, sondern nutze einen Platzhalter
+          if [ -z "$DATEINAME" ]; then
+            echo "WARNUNG: Kein Dateiname übergeben! Nutze Fallback-Namen."
+            DATEINAME="archiv.tar.gz"
+          fi
+          
+          echo "Verarbeite Datei: $DATEINAME"
+          
+          # Ersetze 'deine-subdomain' mit deinem echten InfinityFree-Namen!
+          curl -sL "http://infinityfreeapp.com" -o "$DATEINAME"
 
-      # 3. Datei im Repository sichern und pushen
       - name: Commit und Push der neuen Datei
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           git add .
-          git diff --quiet && git diff --staged --quiet || git commit -m "Automatisch hinzugefügt: ${{ github.event.client_payload.dateiname }}"
+          git diff --quiet && git diff --staged --quiet || git commit -m "Automatisch aktualisiert via FileZilla"
           git push origin main
