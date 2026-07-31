@@ -2,38 +2,37 @@ name: Update von FileZilla empfangen
 
 on:
   repository_dispatch:
-    types: [filezilla_update]
+    types: [filezilla_update] # Signalname aus deinem PHP-Skript
+  workflow_dispatch: # Ermöglicht dir, den Workflow testweise per Hand zu starten
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   refresh-pages:
     runs-on: ubuntu-latest
     steps:
-      # 1. Bestehende GitHub Page / Repository auschecken
+      # 1. Repository auschecken
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Die neue .tar.gz Datei direkt von InfinityFree herunterladen
-      # GitHub Actions Server werden von InfinityFrees Browser-Schutz meist nicht blockiert (da cURL/Wget-Basis)
+      # 2. Die neue .tar.gz Datei von InfinityFree holen
       - name: Lade neue Version von InfinityFree
         run: |
           echo "Lade Datei herunter: ${{ github.event.client_payload.dateiname }}"
-          
-          # Ersetze '://infinityfreeapp.com' mit deiner echten InfinityFree-Domain
-          # Falls deine Archive in einem Unterordner liegen, passe den Pfad an (z.B. /downloads/)
-          curl -sL "https://vtx-scripting.freedev.app/${{ github.event.client_payload.dateiname }}" -o "${{ github.event.client_payload.dateiname }}"
+          curl -sL "http://infinityfreeapp.com{{ github.event.client_payload.dateiname }}" -o "${{ github.event.client_payload.dateiname }}"
 
-      # 3. Die neue Datei dauerhaft im Repository sichern und auf GitHub Pages live schalten
-      - name: Commit und Push auf GitHub Pages
+      # 3. Datei im Repository sichern und pushen
+      - name: Commit und Push der neuen Datei
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          
-          # Datei zum Git-System hinzufügen
-          git add "${{ github.event.client_payload.dateiname }}"
-          
-          # Nur committen, wenn sich wirklich etwas geändert hat
+          git add .
           git diff --quiet && git diff --staged --quiet || git commit -m "Automatisch hinzugefügt: ${{ github.event.client_payload.dateiname }}"
           git push origin main
