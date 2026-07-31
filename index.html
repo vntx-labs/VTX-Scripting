@@ -1,4 +1,66 @@
-<!DOCTYPE html>
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Helper to simulate PHP's __DIR__ in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static files (like vtx-logo.png or the .tar.gz files)
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    // PHP: $dateien = glob("*.tar.gz");
+    let dateien = [];
+    try {
+        dateien = fs.readdirSync(__dirname).filter(file => file.endsWith('.tar.gz'));
+    } catch (err) {
+        dateien = [];
+    }
+
+    let tableRows = "";
+
+    if (dateien.length > 0) {
+        // PHP: rsort($dateien);
+        dateien.sort().reverse();
+        
+        let isLatest = true;
+
+        dateien.forEach(datei => {
+            // PHP: preg_match('/-([vV]\d+\.\d+\.\d+)/', $datei, $treffer);
+            const treffer = datei.match(/-([vV]\d+\.\d+\.\d+)/);
+            
+            // PHP: $version = isset($treffer) ? $treffer[1] : htmlspecialchars($datei);
+            let version = treffer ? treffer[1] : datei;
+
+            // Escape HTML for safety (equivalent to htmlspecialchars)
+            const escapedVersion = String(version).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const escapedDatei = String(datei).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const urlEncodedDatei = encodeURIComponent(datei);
+
+            const latestLabel = isLatest ? "<span class='badge-latest'>Latest</span>" : "";
+            isLatest = false;
+
+            // PHP: ltrim(..., 'vV') equivalent
+            const displayVersion = escapedVersion.replace(/^[vV]+/, '');
+
+            tableRows += `
+                        <tr>
+                            <td><strong style='color:#fff;'>v${displayVersion}</strong>${latestLabel}</td>
+                            <td style='color:#cbd5e1;'>Linux (amd64)</td>
+                            <td style='color:#64748b;'>.tar.gz (enthält Installer)</td>
+                            <td><a href='${urlEncodedDatei}' class='btn-download'>Download</a></td>
+                        </tr>`;
+        });
+    } else {
+        tableRows = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds im Serververzeichnis verfügbar.</td></tr>";
+    }
+
+    const html = `<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -293,8 +355,8 @@
                             <th>Aktion</th>
                         </tr>
                     </thead>
-                    <tbody id="download-table-body">
-                        <!-- Content will be populated by JavaScript -->
+                    <tbody>
+                        ${tableRows}
                     </tbody>
                 </table>
             </div>
@@ -329,88 +391,11 @@
         <p>&copy; 2026 Vantix. Alle Rechte vorbehalten. | Designed for Next-Gen Terminal Core Platforms</p>
     </footer>
 
-    <script>
-        /**
-         * Since GitHub Pages is a static host, we cannot use PHP's glob() to scan the filesystem.
-         * To maintain the functionality of listing .tar.gz files, we use the GitHub REST API.
-         * This script fetches the file list from the repository and renders the table.
-         */
-        async function loadDownloads() {
-            const tableBody = document.getElementById('download-table-body');
-            
-            try {
-                // Configuration for GitHub Pages environment
-                // We extract the owner and repo from the current URL
-                const pathParts = window.location.pathname.split('/').filter(part => part.length > 0);
-                const hostnameParts = window.location.hostname.split('.');
-                
-                let owner, repo;
-                
-                if (hostnameParts[1] === 'github' && hostnameParts[2] === 'io') {
-                    owner = hostnameParts[0];
-                    repo = pathParts[0] || ''; // Usually the first part of the path is the repo name
-                }
-
-                // Fallback or manual override if the logic above doesn't fit the specific deployment
-                // For GitHub Pages, we usually know the repo. 
-                // If this is the root site (owner.github.io), repo is owner.github.io.
-                if (!repo) repo = `${owner}.github.io`;
-
-                // Fetch file list via GitHub API
-                // Note: This assumes files are in the root directory as per the original PHP glob("*")
-                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to fetch repository contents');
-                }
-
-                const files = await response.json();
-                
-                // Filter for .tar.gz files (equivalent to PHP glob("*.tar.gz"))
-                let dateien = files
-                    .filter(file => file.name.endsWith('.tar.gz'))
-                    .map(file => file.name);
-
-                if (dateien.length > 0) {
-                    // Sort descending (equivalent to PHP rsort())
-                    dateien.sort().reverse();
-                    
-                    let isLatest = true;
-                    let html = '';
-
-                    dateien.forEach(datei => {
-                        // Equivalent to PHP preg_match('/-([vV]\d+\.\d+\.\d+)/', $datei, $treffer)
-                        const treffer = datei.match(/-([vV]\d+\.\d+\.\d+)/);
-                        const version = treffer ? treffer[1] : datei;
-
-                        const latestLabel = isLatest ? "<span class='badge-latest'>Latest</span>" : "";
-                        isLatest = false;
-                        
-                        // Clean version string (equivalent to PHP ltrim(..., 'vV'))
-                        const displayVersion = version.replace(/^[vV]/, '');
-
-                        html += `
-                            <tr>
-                                <td><strong style='color:#fff;'>v${displayVersion}</strong>${latestLabel}</td>
-                                <td style='color:#cbd5e1;'>Linux (amd64)</td>
-                                <td style='color:#64748b;'>.tar.gz (enthält Installer)</td>
-                                <td><a href='${encodeURIComponent(datei)}' class='btn-download'>Download</a></td>
-                            </tr>
-                        `;
-                    });
-                    
-                    tableBody.innerHTML = html;
-                } else {
-                    tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds im Serververzeichnis verfügbar.</td></tr>";
-                }
-            } catch (error) {
-                console.error('Error loading downloads:', error);
-                tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Fehler beim Laden der Downloads. Bitte prüfen Sie die Repository-Konfiguration.</td></tr>";
-            }
-        }
-
-        // Initialize the download table on load
-        document.addEventListener('DOMContentLoaded', loadDownloads);
-    </script>
 </body>
-</html>
+</html>`;
+    res.send(html);
+});
+
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
