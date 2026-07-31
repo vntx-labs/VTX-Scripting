@@ -178,14 +178,14 @@
         async function fetchBuilds() {
             const tbody = document.getElementById('build-table');
             try {
-                // Holt die JSON-Datei direkt vom selben Verzeichnis (Dropbox-Links)
+                // Holt die releases.json aus demselben GitHub-Verzeichnis
                 const response = await fetch('releases.json');
-                if (!response.ok) throw new Error();
+                if (!response.ok) throw new Error('Netzwerk-Antwort war nicht ok');
                 
                 const releases = await response.json();
-                if (!Array.isArray(releases) || releases.length === 0) throw new Error();
+                if (!Array.isArray(releases) || releases.length === 0) throw new Error('Keine Releases gefunden');
 
-                // Sortiert die Versionen absteigend (neueste zuerst) über die echte Versionslogik
+                // Sortiert die Versionen absteigend (neueste zuerst)
                 releases.sort((a, b) => {
                     return b.version.localeCompare(a.version, undefined, { numeric: true, sensitivity: 'base' });
                 });
@@ -207,7 +207,8 @@
                 });
                 tbody.innerHTML = html;
             } catch (e) {
-                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#64748b; padding: 2rem;'>Aktuell sind keine Builds verfügbar.</td></tr>";
+                console.error(e);
+                tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#ef4444; padding: 2rem;'>Fehler: releases.json konnte nicht geladen werden. Bitte prüfe, ob die Datei im Repository liegt.</td></tr>";
             }
         }
         fetchBuilds();
