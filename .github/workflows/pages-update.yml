@@ -3,7 +3,7 @@ name: Update von FileZilla empfangen
 on:
   repository_dispatch:
     types: [filezilla_update]
-  workflow_dispatch: # Erlaubt manuelles Testen auf GitHub
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,18 +17,18 @@ jobs:
 
       - name: Lade neue Version von InfinityFree
         run: |
-          # Extrahiere den Dateinamen aus dem API-Signal
+          # Hole den Dateinamen ab
           DATEINAME="${{ github.event.client_payload.dateiname }}"
           
-          # Sicherheitsnetz: Falls DATEINAME leer ist, brich nicht ab, sondern nutze einen Platzhalter
+          # Sicherheitsnetz: Falls GitHub den Namen verschluckt, erzwinge vtx-lang-v2.0.0.tar.gz
           if [ -z "$DATEINAME" ]; then
-            echo "WARNUNG: Kein Dateiname übergeben! Nutze Fallback-Namen."
-            DATEINAME="archiv.tar.gz"
+            echo "Fehler: Kein Dateiname übergeben! Nutze automatischen Name..."
+            DATEINAME="vtx-lang-v2.0.0.tar.gz"
           fi
           
-          echo "Verarbeite Datei: $DATEINAME"
+          echo "Lade Datei herunter: $DATEINAME"
           
-          # Ersetze 'deine-subdomain' mit deinem echten InfinityFree-Namen!
+          # Nutze hier deine echte InfinityFree-Adresse statt 'vntx-labs.infinityfreeapp.com'
           curl -sL "http://infinityfreeapp.com" -o "$DATEINAME"
 
       - name: Commit und Push der neuen Datei
